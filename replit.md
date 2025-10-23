@@ -52,6 +52,30 @@ Preferred communication style: Simple, everyday language.
 - `/api/tutors/*` - Tutor profile management
 - `/api/admin/*` - Admin operations
 
+**Intelligent Job Matching System** (`client/src/lib/job-matcher.ts`):
+- **Scoring Algorithm**: Jobs are matched to tutors based on 4 criteria (total 100 points):
+  - Subject match: 30 points
+  - Level match: 30 points
+  - Location match: 20 points
+  - Rate compatibility: 0-20 points (perfect/close/partial match)
+  
+- **Singapore Education System Support**: Comprehensive fuzzy matching for:
+  - **Subjects**: Mathematics (Math/Maths/E Maths/A Maths/H1/H2 Math), Sciences (Physics/Chemistry/Biology with H1/H2), Languages (English/Chinese/Malay/Tamil with Higher/H1/H2), General Paper (GP), Economics (Econs), Geography (Geog), History, Literature (Lit), Accounting (Acc), Computing (Comp/CS), Art, Music
+  - **Levels**: Primary (P1-P6, Primary 1-6, Primary 1-3/4-6), Secondary (S1-S5, Sec 1-5, Secondary 1-2/3-4, O-Level/N-Level), Junior College (JC/JC1/JC2/J1/J2/JC 1-2, A-Level), IB, IGCSE, Polytechnic
+  - **Level Ranges**: Automatically expands ranges (e.g., "Primary 1-3" matches "Primary 2", "P2", etc.)
+  
+- **Robust Rate Parsing**: Handles multiple formats:
+  - Various separators: hyphen (-), en-dash (–), tilde (~), "to" (e.g., "$40-$60", "$40 to $60", "$40–$60")
+  - Different currencies and notations: $, S$, /hour, /hr, per hour
+  - Decimals: "$50.5/hour"
+  - Returns midpoint for ranges, single value otherwise
+  
+- **Implementation**:
+  - Dashboard shows top 4 recommended jobs (score ≥ 30) sorted by relevance
+  - Jobs page displays all jobs sorted by match score when tutor is logged in
+  - Match reasons displayed as badges to help tutors understand why jobs match their profile
+  - Non-logged-in users see jobs in default order without match indicators
+
 **Authentication**: 
 - Session-based authentication using express-session with PostgreSQL-backed sessions (connect-pg-simple)
 - Sessions include userId and userType (tutor/admin) with 30-day lifetime
