@@ -1,0 +1,149 @@
+Prompt for Replit AI:
+
+Build a Tuition Job-Matching Web App called TutorConnect SG using Next.js 14 (App Router), TypeScript, and TailwindCSS.
+Use PostgreSQL (via Prisma ORM) for the database, and NextAuth for authentication (email/password).
+
+🎯 Purpose
+
+A platform for tutors to register, create profiles, and apply for tuition jobs.
+Admins can post new tuition assignments, approve tutors, and track job applications.
+Inspired by SingaporeTuitionTeachers.com and NanyangLearning.com.
+
+🧩 Core Features
+👤 Tutor System
+
+Register and log in (NextAuth + PostgreSQL).
+
+Complete tutor profile with:
+name, email, mobile, gender, nationality, education, qualification, subjects, levels, hourlyRates, experienceYears, specialNeedsSupport, languages, certifications.
+
+Toggle Public Profile (ON/OFF) and “View Public Profile” link.
+
+Account status: Active / Pending / Suspended.
+
+Edit profile and password.
+
+🧑‍🏫 Tuition Jobs
+
+Job listings page showing all open tuition assignments.
+
+Job card details: subject, level, hourly rate, location, student gender, schedule, lessons per week, and Google Maps link.
+
+Filter by subject, level, location, and rate.
+
+“Apply Now” button (submits tutor’s interest).
+
+Job status tags: Open, Under Review, Filled.
+
+Admin can post, edit, or close assignments.
+
+🧰 Admin Dashboard
+
+Admin login (via NextAuth role check).
+
+Manage tutors (approve / suspend).
+
+Manage tuition job postings.
+
+View analytics (active tutors, open jobs, filled jobs).
+
+💬 Communication
+
+“Join Telegram Channel” button on dashboard (link placeholder).
+
+Simple support chat widget (fake or placeholder).
+
+📈 Public Pages
+
+Landing page with site intro, SEO-optimized sections (like /english-tuition, /math-tuition, /tuition-rates).
+
+Tuition rate chart page editable via admin dashboard.
+
+🧱 Tech Stack
+
+Framework: Next.js 14 (App Router)
+
+Language: TypeScript
+
+Styling: TailwindCSS
+
+Auth: NextAuth (CredentialsProvider)
+
+Database: PostgreSQL + Prisma ORM
+
+API: Next.js API routes (REST)
+
+Deployment: Replit web server
+
+🗂️ Database Models (Prisma)
+model Tutor {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  password        String
+  gender          String?
+  nationality     String?
+  education       String?
+  qualification   String?
+  subjects        String[]
+  levels          String[]
+  hourlyRates     Json
+  experienceYears Int?
+  specialNeeds    Boolean @default(false)
+  languages       String[]
+  certifications  String?
+  status          String  @default("Pending")
+  publicProfile   Boolean @default(false)
+  applications    Application[]
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  subject     String
+  level       String
+  rate        String
+  location    String
+  genderPref  String?
+  schedule    String?
+  lessonsPerWeek Int?
+  mapUrl      String?
+  status      String @default("Open")
+  applications Application[]
+  createdAt   DateTime @default(now())
+}
+
+model Application {
+  id        String   @id @default(cuid())
+  tutorId   String
+  jobId     String
+  status    String @default("Applied")
+  createdAt DateTime @default(now())
+  tutor     Tutor @relation(fields: [tutorId], references: [id])
+  job       Job   @relation(fields: [jobId], references: [id])
+}
+
+🧭 Pages to Generate
+
+/ → Landing page
+
+/register → Tutor signup form
+
+/login → Tutor login
+
+/dashboard → Tutor dashboard (profile + jobs)
+
+/jobs → Public job listings
+
+/admin → Admin dashboard (manage tutors & jobs)
+
+/tuition-rates → Static tuition rates page
+
+🧠 Bonus
+
+Add Telegram Bot integration later (API placeholder).
+
+Use Framer Motion for subtle animations.
+
+Mobile-first responsive layout.
+
+Generate this complete Next.js + Prisma project with Tailwind and all pages scaffolded.
