@@ -10,15 +10,35 @@ export const tutors = pgTable("tutors", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  mobile: text("mobile"),
+  mobile: text("mobile").notNull(),
+  
+  // Personal Information (Step 1)
+  dateOfBirth: text("date_of_birth"),
   gender: text("gender"),
+  age: integer("age"),
   nationality: text("nationality"),
-  education: text("education"),
-  qualification: text("qualification"),
+  race: text("race"),
+  nricLast4: text("nric_last_4"),
+  
+  // Tutoring Preferences (Step 2)
   subjects: text("subjects").array().notNull().default(sql`ARRAY[]::text[]`),
   levels: text("levels").array().notNull().default(sql`ARRAY[]::text[]`),
-  hourlyRates: json("hourly_rates").$type<{ min: number; max: number }>(),
+  locations: text("locations").array().notNull().default(sql`ARRAY[]::text[]`),
+  
+  // Qualifications & Experience (Step 3)
+  tutorType: text("tutor_type"),
   experienceYears: integer("experience_years"),
+  education: text("education"),
+  qualification: text("qualification"),
+  
+  // Profile (Step 4)
+  introduction: text("introduction"),
+  teachingExperience: text("teaching_experience"),
+  studentResults: text("student_results"),
+  otherInfo: text("other_info"),
+  
+  // Additional fields
+  hourlyRates: json("hourly_rates").$type<{ min: number; max: number }>(),
   specialNeeds: boolean("special_needs").notNull().default(false),
   languages: text("languages").array().notNull().default(sql`ARRAY[]::text[]`),
   certifications: text("certifications"),
@@ -114,9 +134,10 @@ export const insertTutorSchema = createInsertSchema(tutors, {
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
-  mobile: z.string().optional(),
+  mobile: z.string().min(1, "Mobile number is required"),
   subjects: z.array(z.string()).default([]),
   levels: z.array(z.string()).default([]),
+  locations: z.array(z.string()).default([]),
   languages: z.array(z.string()).default([]),
 }).omit({
   id: true,
