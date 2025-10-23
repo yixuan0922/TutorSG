@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { insertJobRequestSchema, type InsertJobRequest } from "@shared/schema";
+import { insertJobRequestSchema, insertSalesContactSchema, type InsertJobRequest, type InsertSalesContact } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Phone, Mail, MapPin, BookOpen, GraduationCap } from "lucide-react";
+import { CheckCircle2, Phone, Mail, MapPin, BookOpen, GraduationCap, Headset } from "lucide-react";
 
 const formSchema = insertJobRequestSchema.extend({
   contactEmail: z.string().email("Invalid email").optional().or(z.literal("")),
+});
+
+const salesContactFormSchema = insertSalesContactSchema.extend({
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
 });
 
 const SUBJECTS = [
@@ -56,6 +68,7 @@ const BUDGET_RANGES = [
 export default function RequestTutor() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [salesDialogOpen, setSalesDialogOpen] = useState(false);
 
   const form = useForm<InsertJobRequest>({
     resolver: zodResolver(formSchema),
@@ -104,8 +117,52 @@ export default function RequestTutor() {
     },
   });
 
+  const salesForm = useForm<InsertSalesContact>({
+    resolver: zodResolver(salesContactFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      message: "",
+    },
+  });
+
+  const salesContactMutation = useMutation({
+    mutationFn: async (data: InsertSalesContact) => {
+      const response = await fetch("/api/sales-contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to submit contact request");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setSalesDialogOpen(false);
+      salesForm.reset();
+      toast({
+        title: "Contact request sent!",
+        description: "Our sales team will reach out to you shortly.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Request failed",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: InsertJobRequest) => {
     submitMutation.mutate(data);
+  };
+
+  const onSalesSubmit = (data: InsertSalesContact) => {
+    salesContactMutation.mutate(data);
   };
 
   if (submitted) {
@@ -430,7 +487,7 @@ export default function RequestTutor() {
                   />
                 </div>
 
-                <div className="flex gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Button
                     type="submit"
                     className="flex-1"
@@ -439,6 +496,126 @@ export default function RequestTutor() {
                   >
                     {submitMutation.isPending ? "Submitting..." : "Submit Request"}
                   </Button>
+                  
+                  <Dialog open={salesDialogOpen} onOpenChange={setSalesDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 sm:flex-none"
+                        data-testid="button-contact-sales"
+                      >
+                        <Headset className="w-4 h-4 mr-2" />
+                        Contact Sales Team
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Contact Our Sales Team</DialogTitle>
+                        <DialogDescription>
+                          Need help or have specific requirements? Our sales team is here to assist you.
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <Form {...salesForm}>
+                        <form onSubmit={salesForm.handleSubmit(onSalesSubmit)} className="space-y-4">
+                          <FormField
+                            control={salesForm.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Your Name *</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Enter your name" 
+                                    {...field} 
+                                    data-testid="input-sales-name"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={salesForm.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Phone Number *</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="+65 9123 4567" 
+                                    {...field} 
+                                    data-testid="input-sales-phone"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={salesForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="email"
+                                    placeholder="your@email.com" 
+                                    {...field}
+                                    value={field.value || ""}
+                                    data-testid="input-sales-email"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={salesForm.control}
+                            name="message"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Message (Optional)</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="How can we help you?"
+                                    className="min-h-[80px]"
+                                    {...field}
+                                    value={field.value || ""}
+                                    data-testid="input-sales-message"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setSalesDialogOpen(false)}
+                              data-testid="button-sales-cancel"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="submit"
+                              disabled={salesContactMutation.isPending}
+                              data-testid="button-sales-submit"
+                            >
+                              {salesContactMutation.isPending ? "Sending..." : "Send Request"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </form>
             </Form>
