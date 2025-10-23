@@ -19,6 +19,20 @@ import { User, BookOpen, GraduationCap, FileText } from "lucide-react";
 
 const registerFormSchema = insertTutorSchema.extend({
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+  // Step 1: Personal Information - Make required fields mandatory
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  gender: z.string().min(1, "Gender is required"),
+  nationality: z.string().min(1, "Nationality is required"),
+  // Step 2: Tutoring Preferences - Require at least one selection
+  levels: z.array(z.string()).min(1, "Please select at least one level"),
+  subjects: z.array(z.string()).min(1, "Please select at least one subject"),
+  locations: z.array(z.string()).min(1, "Please select at least one location"),
+  // Step 3: Qualifications - Make required fields mandatory
+  tutorType: z.string().min(1, "Tutor type is required"),
+  experienceYears: z.number().min(0, "Experience years is required"),
+  education: z.string().min(1, "Highest education level is required"),
+  // Step 4: Profile - Make introduction mandatory
+  introduction: z.string().min(10, "Please write at least 10 characters for your introduction"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
