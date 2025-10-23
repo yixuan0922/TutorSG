@@ -23,6 +23,8 @@ import {
 import { SiTelegram } from "react-icons/si";
 import type { Tutor, Job, ApplicationWithRelations } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { getRecommendedJobs } from "@/lib/job-matcher";
+import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
   const [profileComplete, setProfileComplete] = useState(65);
@@ -74,9 +76,12 @@ export default function Dashboard() {
     enabled: !!tutorId,
   });
 
-  const { data: recommendedJobs = [] } = useQuery<Job[]>({
+  const { data: allJobs = [] } = useQuery<Job[]>({
     queryKey: ["/api/jobs"],
   });
+
+  // Get intelligently matched jobs based on tutor profile
+  const matchedJobs = tutor ? getRecommendedJobs(allJobs, tutor, 4) : [];
 
   if (!tutor) {
     return (
@@ -217,18 +222,38 @@ export default function Dashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Recommended Jobs</CardTitle>
-                <CardDescription>Based on your profile and preferences</CardDescription>
+                <CardDescription>Matched based on your subjects, levels, locations, and rates</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {recommendedJobs.slice(0, 4).map((job) => (
-                    <JobCard 
-                      key={job.id} 
-                      job={job} 
-                      onApply={(jobId) => applyMutation.mutate(jobId)} 
-                    />
-                  ))}
-                </div>
+                {matchedJobs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-2">No matching jobs found</p>
+                    <p className="text-sm text-muted-foreground">
+                      We'll notify you when jobs matching your profile become available
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {matchedJobs.map((match) => (
+                      <div key={match.job.id} className="space-y-2">
+                        <JobCard 
+                          job={match.job} 
+                          onApply={(jobId) => applyMutation.mutate(jobId)} 
+                        />
+                        {match.matchReasons.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {match.matchReasons.map((reason, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {reason}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
