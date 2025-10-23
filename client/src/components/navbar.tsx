@@ -26,7 +26,7 @@ export function Navbar() {
   const isLoggedIn = !!tutorId && userType === "tutor";
 
   const { data: tutor } = useQuery<Tutor>({
-    queryKey: ["/api/tutors", tutorId],
+    queryKey: [`/api/tutors/${tutorId}`],
     enabled: isLoggedIn,
   });
 

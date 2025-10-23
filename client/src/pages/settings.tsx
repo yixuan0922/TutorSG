@@ -14,7 +14,7 @@ export default function Settings() {
   const tutorId = localStorage.getItem("tutorId");
 
   const { data: tutor, isLoading } = useQuery<Tutor>({
-    queryKey: ["/api/tutors", tutorId],
+    queryKey: [`/api/tutors/${tutorId}`],
     enabled: !!tutorId,
   });
 
