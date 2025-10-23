@@ -44,6 +44,15 @@ const LEVELS = [
   "JC 1", "JC 2", "IB", "IGCSE", "Diploma"
 ];
 
+const BUDGET_RANGES = [
+  "Below $30/hour",
+  "$30-40/hour",
+  "$40-50/hour",
+  "$50-60/hour",
+  "$60-80/hour",
+  "Above $80/hour"
+];
+
 export default function RequestTutor() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
@@ -354,14 +363,20 @@ export default function RequestTutor() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Budget (Optional)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="e.g., $40-60/hr" 
-                              {...field}
-                              value={field.value || ""}
-                              data-testid="input-budget"
-                            />
-                          </FormControl>
+                          <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-budget">
+                                <SelectValue placeholder="Select budget range" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {BUDGET_RANGES.map((range) => (
+                                <SelectItem key={range} value={range}>
+                                  {range}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

@@ -10,7 +10,7 @@ const app = express();
 // Session type extension
 declare module "express-session" {
   interface SessionData {
-    userId: number;
+    userId: string;
     userType: "tutor" | "admin";
   }
 }

@@ -78,6 +78,17 @@ export const jobRequests = pgTable("job_requests", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Sales Contacts table (direct sales inquiries)
+export const salesContacts = pgTable("sales_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone").notNull(),
+  message: text("message"),
+  status: text("status").notNull().default("New"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const tutorsRelations = relations(tutors, ({ many }) => ({
   applications: many(applications),
@@ -149,6 +160,16 @@ export const insertJobRequestSchema = createInsertSchema(jobRequests, {
   status: true,  // Status is server-controlled, not user input
 });
 
+export const insertSalesContactSchema = createInsertSchema(salesContacts, {
+  name: z.string().min(2, "Name is required"),
+  phone: z.string().min(8, "Valid phone number is required"),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+}).omit({
+  id: true,
+  createdAt: true,
+  status: true,  // Status is server-controlled
+});
+
 // Login schemas
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -170,6 +191,9 @@ export type Admin = typeof admins.$inferSelect;
 
 export type InsertJobRequest = z.infer<typeof insertJobRequestSchema>;
 export type JobRequest = typeof jobRequests.$inferSelect;
+
+export type InsertSalesContact = z.infer<typeof insertSalesContactSchema>;
+export type SalesContact = typeof salesContacts.$inferSelect;
 
 export type LoginData = z.infer<typeof loginSchema>;
 

@@ -5,6 +5,7 @@ import {
   applications, 
   admins,
   jobRequests,
+  salesContacts,
   type Tutor, 
   type InsertTutor,
   type Job,
@@ -15,6 +16,8 @@ import {
   type InsertAdmin,
   type JobRequest,
   type InsertJobRequest,
+  type SalesContact,
+  type InsertSalesContact,
   type ApplicationWithRelations
 } from "@shared/schema";
 import { db } from "./db";
@@ -56,6 +59,11 @@ export interface IStorage {
   createJobRequest(request: InsertJobRequest): Promise<JobRequest>;
   updateJobRequestStatus(id: string, status: string): Promise<JobRequest | undefined>;
   deleteJobRequest(id: string): Promise<void>;
+  
+  // Sales Contact operations
+  createSalesContact(contact: InsertSalesContact): Promise<SalesContact>;
+  getAllSalesContacts(): Promise<SalesContact[]>;
+  updateSalesContactStatus(id: string, status: string): Promise<SalesContact | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -225,6 +233,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteJobRequest(id: string): Promise<void> {
     await db.delete(jobRequests).where(eq(jobRequests.id, id));
+  }
+
+  // Sales Contact operations
+  async createSalesContact(insertSalesContact: InsertSalesContact): Promise<SalesContact> {
+    // Force status to "New" at storage layer - defense in depth
+    const [contact] = await db
+      .insert(salesContacts)
+      .values({
+        ...insertSalesContact,
+        status: "New",
+      })
+      .returning();
+    return contact;
+  }
+
+  async getAllSalesContacts(): Promise<SalesContact[]> {
+    return await db.select().from(salesContacts).orderBy(desc(salesContacts.createdAt));
+  }
+
+  async updateSalesContactStatus(id: string, status: string): Promise<SalesContact | undefined> {
+    const [contact] = await db
+      .update(salesContacts)
+      .set({ status })
+      .where(eq(salesContacts.id, id))
+      .returning();
+    return contact || undefined;
   }
 }
 

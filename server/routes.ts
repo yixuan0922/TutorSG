@@ -8,6 +8,7 @@ import {
   insertApplicationSchema,
   insertAdminSchema,
   insertJobRequestSchema,
+  insertSalesContactSchema,
   loginSchema,
   type LoginData 
 } from "@shared/schema";
@@ -439,6 +440,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete job request error:", error);
       res.status(500).json({ message: "Failed to delete request" });
+    }
+  });
+  
+  // Sales Contact Routes
+  
+  // Create sales contact (public - for "Contact Sales Team" button)
+  app.post("/api/sales-contacts", async (req: Request, res: Response) => {
+    try {
+      const data = insertSalesContactSchema.parse(req.body);
+      const contact = await storage.createSalesContact(data);
+      res.status(201).json(contact);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Create sales contact error:", error);
+      res.status(500).json({ message: "Failed to submit contact request" });
+    }
+  });
+  
+  // Get all sales contacts (admin only)
+  app.get("/api/sales-contacts", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const contacts = await storage.getAllSalesContacts();
+      res.json(contacts);
+    } catch (error) {
+      console.error("Get sales contacts error:", error);
+      res.status(500).json({ message: "Failed to fetch sales contacts" });
+    }
+  });
+  
+  // Update sales contact status (admin only)
+  app.patch("/api/sales-contacts/:id/status", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+      await storage.updateSalesContactStatus(req.params.id, status);
+      res.json({ message: "Status updated" });
+    } catch (error) {
+      console.error("Update sales contact status error:", error);
+      res.status(500).json({ message: "Failed to update status" });
     }
   });
   
