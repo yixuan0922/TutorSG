@@ -213,6 +213,138 @@ export default function RequestTutor() {
           </p>
         </div>
 
+        {/* Contact Sales Button */}
+        <Dialog open={salesDialogOpen} onOpenChange={setSalesDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="default"
+              size="lg"
+              className="w-full mb-4"
+              data-testid="button-contact-sales"
+            >
+              <Headset className="w-5 h-5 mr-2" />
+              Contact Sales Team for Personalized Assistance
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Contact Our Sales Team</DialogTitle>
+              <DialogDescription>
+                Need help or have specific requirements? Our sales team is here to assist you.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...salesForm}>
+              <form onSubmit={salesForm.handleSubmit(onSalesSubmit)} className="space-y-4">
+                <FormField
+                  control={salesForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Your Name *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your name" 
+                          {...field} 
+                          data-testid="input-sales-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={salesForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="+65 9123 4567" 
+                          {...field} 
+                          data-testid="input-sales-phone"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={salesForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email"
+                          placeholder="your@email.com" 
+                          {...field}
+                          value={field.value || ""}
+                          data-testid="input-sales-email"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={salesForm.control}
+                  name="message"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Message (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="How can we help you?"
+                          className="min-h-[80px]"
+                          {...field}
+                          value={field.value || ""}
+                          data-testid="input-sales-message"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSalesDialogOpen(false)}
+                    data-testid="button-sales-cancel"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={salesContactMutation.isPending}
+                    data-testid="button-sales-submit"
+                  >
+                    {salesContactMutation.isPending ? "Sending..." : "Send Request"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        {/* OR Divider */}
+        <div className="relative mb-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-background text-muted-foreground font-medium">OR</span>
+          </div>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>Tuition Request Form</CardTitle>
@@ -487,135 +619,15 @@ export default function RequestTutor() {
                   />
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <div className="pt-4">
                   <Button
                     type="submit"
-                    className="flex-1"
+                    className="w-full"
                     disabled={submitMutation.isPending}
                     data-testid="button-submit-request"
                   >
                     {submitMutation.isPending ? "Submitting..." : "Submit Request"}
                   </Button>
-                  
-                  <Dialog open={salesDialogOpen} onOpenChange={setSalesDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1 sm:flex-none"
-                        data-testid="button-contact-sales"
-                      >
-                        <Headset className="w-4 h-4 mr-2" />
-                        Contact Sales Team
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Contact Our Sales Team</DialogTitle>
-                        <DialogDescription>
-                          Need help or have specific requirements? Our sales team is here to assist you.
-                        </DialogDescription>
-                      </DialogHeader>
-                      
-                      <Form {...salesForm}>
-                        <form onSubmit={salesForm.handleSubmit(onSalesSubmit)} className="space-y-4">
-                          <FormField
-                            control={salesForm.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Your Name *</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Enter your name" 
-                                    {...field} 
-                                    data-testid="input-sales-name"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={salesForm.control}
-                            name="phone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Phone Number *</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="+65 9123 4567" 
-                                    {...field} 
-                                    data-testid="input-sales-phone"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={salesForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="email"
-                                    placeholder="your@email.com" 
-                                    {...field}
-                                    value={field.value || ""}
-                                    data-testid="input-sales-email"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={salesForm.control}
-                            name="message"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Message (Optional)</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="How can we help you?"
-                                    className="min-h-[80px]"
-                                    {...field}
-                                    value={field.value || ""}
-                                    data-testid="input-sales-message"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => setSalesDialogOpen(false)}
-                              data-testid="button-sales-cancel"
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              type="submit"
-                              disabled={salesContactMutation.isPending}
-                              data-testid="button-sales-submit"
-                            >
-                              {salesContactMutation.isPending ? "Sending..." : "Send Request"}
-                            </Button>
-                          </div>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
                 </div>
               </form>
             </Form>
