@@ -11,6 +11,8 @@ import Dashboard from "@/pages/dashboard";
 import Admin from "@/pages/admin";
 import TuitionRates from "@/pages/tuition-rates";
 import RequestTutor from "@/pages/request-tutor";
+import Profile from "@/pages/profile";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +26,8 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/tuition-rates" component={TuitionRates} />
       <Route path="/request-tutor" component={RequestTutor} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
