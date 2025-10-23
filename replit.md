@@ -53,9 +53,13 @@ Preferred communication style: Simple, everyday language.
 - `/api/admin/*` - Admin operations
 
 **Authentication**: 
-- Session-based authentication using bcryptjs for password hashing
-- Role-based access control (tutor vs admin)
-- No JWT - relies on server-side session management with connect-pg-simple
+- Session-based authentication using express-session with PostgreSQL-backed sessions (connect-pg-simple)
+- Sessions include userId and userType (tutor/admin) with 30-day lifetime
+- Secure, httpOnly cookies with sameSite protection
+- Password hashing with bcryptjs (10 rounds)
+- Role-based access control with middleware (requireAdmin, requireAuth)
+- All admin endpoints protected with authentication checks
+- Admin creation endpoint secured: allows first admin setup, then requires admin auth
 
 **Development Server**: 
 - Vite middleware integration for hot module replacement
