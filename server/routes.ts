@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
@@ -12,6 +12,21 @@ import {
   type LoginData 
 } from "@shared/schema";
 import { z } from "zod";
+
+// Auth middleware
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId || req.session.userType !== "admin") {
+    return res.status(401).json({ message: "Unauthorized - Admin access required" });
+  }
+  next();
+}
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ message: "Unauthorized - Authentication required" });
+  }
+  next();
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth Routes
@@ -63,6 +78,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
+      // Set session
+      req.session.userId = tutor.id;
+      req.session.userType = "tutor";
+      
       // Remove password from response
       const { password: _, ...tutorData } = tutor;
       res.json(tutorData);
@@ -90,6 +109,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
+      // Set session
+      req.session.userId = admin.id;
+      req.session.userType = "admin";
+      
       // Remove password from response
       const { password: _, ...adminData } = admin;
       res.json(adminData);
@@ -105,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tutor Routes
   
   // Get all tutors (admin only)
-  app.get("/api/tutors", async (_req: Request, res: Response) => {
+  app.get("/api/tutors", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const tutors = await storage.getAllTutors();
       // Remove passwords from response
@@ -152,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Approve/Suspend tutor (admin only)
-  app.patch("/api/tutors/:id/status", async (req: Request, res: Response) => {
+  app.patch("/api/tutors/:id/status", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { status } = req.body;
       if (!["Active", "Pending", "Suspended"].includes(status)) {
@@ -212,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Create job (admin only)
-  app.post("/api/jobs", async (req: Request, res: Response) => {
+  app.post("/api/jobs", requireAdmin, async (req: Request, res: Response) => {
     try {
       const data = insertJobSchema.parse(req.body);
       const job = await storage.createJob(data);
@@ -227,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update job (admin only)
-  app.patch("/api/jobs/:id", async (req: Request, res: Response) => {
+  app.patch("/api/jobs/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const job = await storage.updateJob(req.params.id, req.body);
       if (!job) {
@@ -241,7 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete job (admin only)
-  app.delete("/api/jobs/:id", async (req: Request, res: Response) => {
+  app.delete("/api/jobs/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       await storage.deleteJob(req.params.id);
       res.status(204).send();
@@ -312,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Job Request Routes (Parent Submissions)
   
   // Get all job requests (admin only)
-  app.get("/api/job-requests", async (_req: Request, res: Response) => {
+  app.get("/api/job-requests", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const requests = await storage.getAllJobRequests();
       res.json(requests);
@@ -323,7 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get pending job requests (admin only)
-  app.get("/api/job-requests/pending", async (_req: Request, res: Response) => {
+  app.get("/api/job-requests/pending", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const requests = await storage.getPendingJobRequests();
       res.json(requests);
@@ -354,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update job request status (admin only)
-  app.patch("/api/job-requests/:id/status", async (req: Request, res: Response) => {
+  app.patch("/api/job-requests/:id/status", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { status } = req.body;
       if (!["Pending", "Approved", "Rejected"].includes(status)) {
@@ -373,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Approve and convert job request to job posting (admin only)
-  app.post("/api/job-requests/:id/approve", async (req: Request, res: Response) => {
+  app.post("/api/job-requests/:id/approve", requireAdmin, async (req: Request, res: Response) => {
     try {
       const requestId = req.params.id;
       const request = await storage.getJobRequest(requestId);
@@ -409,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete job request (admin only)
-  app.delete("/api/job-requests/:id", async (req: Request, res: Response) => {
+  app.delete("/api/job-requests/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       await storage.deleteJobRequest(req.params.id);
       res.status(204).send();

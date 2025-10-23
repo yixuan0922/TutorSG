@@ -198,9 +198,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createJobRequest(insertJobRequest: InsertJobRequest): Promise<JobRequest> {
+    // Force status to Pending at storage layer - defense in depth
     const [request] = await db
       .insert(jobRequests)
-      .values(insertJobRequest)
+      .values({
+        ...insertJobRequest,
+        status: "Pending",
+      })
       .returning();
     return request;
   }
