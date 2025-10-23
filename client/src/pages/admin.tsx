@@ -36,7 +36,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { Tutor, Job, JobRequest } from "@shared/schema";
+import type { Tutor, Job, JobRequest, SalesContact } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Admin() {
@@ -72,10 +72,15 @@ export default function Admin() {
     queryKey: ["/api/job-requests"],
   });
 
+  const { data: salesContacts = [] } = useQuery<SalesContact[]>({
+    queryKey: ["/api/sales-contacts"],
+  });
+
   const activeTutors = tutors.filter(t => t.status === "Active").length;
   const openJobs = jobs.filter(j => j.status === "Open").length;
   const filledJobs = jobs.filter(j => j.status === "Filled").length;
   const pendingRequests = jobRequests.filter(r => r.status === "Pending").length;
+  const newSalesContacts = salesContacts.filter(c => c.status === "New").length;
 
   const approveTutorMutation = useMutation({
     mutationFn: async (tutorId: string) => {
@@ -263,6 +268,40 @@ export default function Admin() {
     rejectRequestMutation.mutate(requestId);
   };
 
+  const updateSalesContactMutation = useMutation({
+    mutationFn: async ({ contactId, status }: { contactId: string; status: string }) => {
+      const response = await fetch(`/api/sales-contacts/${contactId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error("Failed to update contact status");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sales-contacts"] });
+      toast({
+        title: "Status updated",
+        description: "The contact status has been updated.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleContactSalesContact = (contactId: string) => {
+    updateSalesContactMutation.mutate({ contactId, status: "Contacted" });
+  };
+
+  const handleCloseSalesContact = (contactId: string) => {
+    updateSalesContactMutation.mutate({ contactId, status: "Closed" });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -336,11 +375,14 @@ export default function Admin() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="tutors" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-3xl">
             <TabsTrigger value="tutors" data-testid="tab-tutors">Tutors</TabsTrigger>
             <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
             <TabsTrigger value="requests" data-testid="tab-requests">
               Requests {pendingRequests > 0 && `(${pendingRequests})`}
+            </TabsTrigger>
+            <TabsTrigger value="sales" data-testid="tab-sales">
+              Sales {newSalesContacts > 0 && `(${newSalesContacts})`}
             </TabsTrigger>
           </TabsList>
 
@@ -686,6 +728,94 @@ export default function Admin() {
                                 <span className="text-sm text-muted-foreground">
                                   {request.status === "Approved" ? "Approved" : "Rejected"}
                                 </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sales" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sales Contact Requests</CardTitle>
+                <CardDescription>
+                  Direct sales inquiries from parents who clicked "Contact Sales Team"
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Message</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {salesContacts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            No sales contact requests yet
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        salesContacts.map((contact) => (
+                          <TableRow key={contact.id} data-testid={`row-sales-${contact.id}`}>
+                            <TableCell className="font-medium">{contact.name}</TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div>{contact.phone}</div>
+                                {contact.email && (
+                                  <div className="text-muted-foreground">{contact.email}</div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm max-w-xs truncate">
+                                {contact.message || "-"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={contact.status} variant="sm" />
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(contact.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {contact.status === "New" ? (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => handleContactSalesContact(contact.id)}
+                                  disabled={updateSalesContactMutation.isPending}
+                                  data-testid={`button-contact-${contact.id}`}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  {updateSalesContactMutation.isPending ? "Updating..." : "Mark Contacted"}
+                                </Button>
+                              ) : contact.status === "Contacted" ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCloseSalesContact(contact.id)}
+                                  disabled={updateSalesContactMutation.isPending}
+                                  data-testid={`button-close-${contact.id}`}
+                                >
+                                  <UserX className="h-4 w-4 mr-1" />
+                                  {updateSalesContactMutation.isPending ? "Updating..." : "Close"}
+                                </Button>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Closed</span>
                               )}
                             </TableCell>
                           </TableRow>
