@@ -319,7 +319,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <Label htmlFor="experience">Years of Experience</Label>
-                    <Input id="experience" type="number" defaultValue={mockTutor.experienceYears} data-testid="input-experience" />
+                    <Input id="experience" type="number" defaultValue={mockTutor.experienceYears || undefined} data-testid="input-experience" />
                   </div>
                 </div>
 

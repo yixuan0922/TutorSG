@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Filter } from "lucide-react";
-import type { Job } from "@shared/schema";
+import { Search, Filter, Star } from "lucide-react";
+import type { Job, Tutor } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { sortJobsByRelevance } from "@/lib/job-matcher";
+import { Badge } from "@/components/ui/badge";
 
 export default function Jobs() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,9 +19,16 @@ export default function Jobs() {
   const [selectedLevel, setSelectedLevel] = useState<string>("");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const { toast } = useToast();
+  const tutorId = localStorage.getItem("tutorId");
 
   const { data: jobs = [], isLoading } = useQuery<Job[]>({
     queryKey: ["/api/jobs"],
+  });
+
+  // Fetch tutor profile for matching
+  const { data: tutor } = useQuery<Tutor>({
+    queryKey: ["/api/tutors", tutorId],
+    enabled: !!tutorId,
   });
 
   const applyMutation = useMutation({
@@ -59,7 +68,8 @@ export default function Jobs() {
   const levels = ["Primary 1-3", "Primary 4-6", "Secondary 1-2", "Secondary 3-4", "JC 1-2", "University"];
   const locations = ["Tampines", "Jurong West", "Bishan", "Ang Mo Kio", "Bedok", "Woodlands"];
 
-  const filteredJobs = jobs.filter(job => {
+  // First filter by search and manual filters
+  const manuallyFilteredJobs = jobs.filter(job => {
     const matchesSearch = job.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          job.level.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSubject = !selectedSubject || job.subject === selectedSubject;
@@ -68,6 +78,13 @@ export default function Jobs() {
     
     return matchesSearch && matchesSubject && matchesLevel && matchesLocation;
   });
+
+  // Then sort by relevance to tutor profile (if logged in)
+  const sortedJobs = tutor 
+    ? sortJobsByRelevance(manuallyFilteredJobs, tutor)
+    : manuallyFilteredJobs.map(job => ({ job, score: 0, matchReasons: [] }));
+
+  const filteredJobs = sortedJobs.map(match => match.job);
 
   const handleApply = (jobId: string) => {
     applyMutation.mutate(jobId);
@@ -201,6 +218,7 @@ export default function Jobs() {
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground" data-testid="text-results-count">
                 {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"} found
+                {tutor && tutorId && <span className="ml-2 text-primary"><Star className="w-3 h-3 inline mb-1" /> Sorted by relevance to your profile</span>}
               </p>
             </div>
 
@@ -231,8 +249,20 @@ export default function Jobs() {
               </Card>
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
-                {filteredJobs.map((job) => (
-                  <JobCard key={job.id} job={job} onApply={handleApply} />
+                {sortedJobs.map((match) => (
+                  <div key={match.job.id} className="space-y-2">
+                    <JobCard job={match.job} onApply={handleApply} />
+                    {tutor && tutorId && match.matchReasons.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {match.matchReasons.map((reason, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs">
+                            <Star className="w-3 h-3 mr-1" />
+                            {reason}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
