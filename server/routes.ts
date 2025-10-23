@@ -1,0 +1,347 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import bcrypt from "bcryptjs";
+import { 
+  insertTutorSchema, 
+  insertJobSchema, 
+  insertApplicationSchema,
+  insertAdminSchema,
+  loginSchema,
+  type LoginData 
+} from "@shared/schema";
+import { z } from "zod";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth Routes
+  
+  // Tutor Registration
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const data = insertTutorSchema.parse(req.body);
+      
+      // Check if email already exists
+      const existing = await storage.getTutorByEmail(data.email);
+      if (existing) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(data.password, 10);
+      
+      // Create tutor
+      const tutor = await storage.createTutor({
+        ...data,
+        password: hashedPassword,
+      });
+      
+      // Remove password from response
+      const { password: _, ...tutorData } = tutor;
+      res.status(201).json(tutorData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+  
+  // Tutor Login
+  app.post("/api/auth/login/tutor", async (req: Request, res: Response) => {
+    try {
+      const data = loginSchema.parse(req.body);
+      
+      const tutor = await storage.getTutorByEmail(data.email);
+      if (!tutor) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      const validPassword = await bcrypt.compare(data.password, tutor.password);
+      if (!validPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Remove password from response
+      const { password: _, ...tutorData } = tutor;
+      res.json(tutorData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+  
+  // Admin Login
+  app.post("/api/auth/login/admin", async (req: Request, res: Response) => {
+    try {
+      const data = loginSchema.parse(req.body);
+      
+      const admin = await storage.getAdminByEmail(data.email);
+      if (!admin) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      const validPassword = await bcrypt.compare(data.password, admin.password);
+      if (!validPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Remove password from response
+      const { password: _, ...adminData } = admin;
+      res.json(adminData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Admin login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+  
+  // Tutor Routes
+  
+  // Get all tutors (admin only)
+  app.get("/api/tutors", async (_req: Request, res: Response) => {
+    try {
+      const tutors = await storage.getAllTutors();
+      // Remove passwords from response
+      const tutorsData = tutors.map(({ password: _, ...tutor }) => tutor);
+      res.json(tutorsData);
+    } catch (error) {
+      console.error("Get tutors error:", error);
+      res.status(500).json({ message: "Failed to fetch tutors" });
+    }
+  });
+  
+  // Get tutor by ID
+  app.get("/api/tutors/:id", async (req: Request, res: Response) => {
+    try {
+      const tutor = await storage.getTutor(req.params.id);
+      if (!tutor) {
+        return res.status(404).json({ message: "Tutor not found" });
+      }
+      
+      // Remove password from response
+      const { password: _, ...tutorData } = tutor;
+      res.json(tutorData);
+    } catch (error) {
+      console.error("Get tutor error:", error);
+      res.status(500).json({ message: "Failed to fetch tutor" });
+    }
+  });
+  
+  // Update tutor
+  app.patch("/api/tutors/:id", async (req: Request, res: Response) => {
+    try {
+      const tutor = await storage.updateTutor(req.params.id, req.body);
+      if (!tutor) {
+        return res.status(404).json({ message: "Tutor not found" });
+      }
+      
+      // Remove password from response
+      const { password: _, ...tutorData } = tutor;
+      res.json(tutorData);
+    } catch (error) {
+      console.error("Update tutor error:", error);
+      res.status(500).json({ message: "Failed to update tutor" });
+    }
+  });
+  
+  // Approve/Suspend tutor (admin only)
+  app.patch("/api/tutors/:id/status", async (req: Request, res: Response) => {
+    try {
+      const { status } = req.body;
+      if (!["Active", "Pending", "Suspended"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const tutor = await storage.updateTutor(req.params.id, { status });
+      if (!tutor) {
+        return res.status(404).json({ message: "Tutor not found" });
+      }
+      
+      // Remove password from response
+      const { password: _, ...tutorData } = tutor;
+      res.json(tutorData);
+    } catch (error) {
+      console.error("Update tutor status error:", error);
+      res.status(500).json({ message: "Failed to update tutor status" });
+    }
+  });
+  
+  // Job Routes
+  
+  // Get all jobs
+  app.get("/api/jobs", async (_req: Request, res: Response) => {
+    try {
+      const jobs = await storage.getAllJobs();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Get jobs error:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+  
+  // Get open jobs only
+  app.get("/api/jobs/open", async (_req: Request, res: Response) => {
+    try {
+      const jobs = await storage.getOpenJobs();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Get open jobs error:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+  
+  // Get job by ID
+  app.get("/api/jobs/:id", async (req: Request, res: Response) => {
+    try {
+      const job = await storage.getJob(req.params.id);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      res.json(job);
+    } catch (error) {
+      console.error("Get job error:", error);
+      res.status(500).json({ message: "Failed to fetch job" });
+    }
+  });
+  
+  // Create job (admin only)
+  app.post("/api/jobs", async (req: Request, res: Response) => {
+    try {
+      const data = insertJobSchema.parse(req.body);
+      const job = await storage.createJob(data);
+      res.status(201).json(job);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Create job error:", error);
+      res.status(500).json({ message: "Failed to create job" });
+    }
+  });
+  
+  // Update job (admin only)
+  app.patch("/api/jobs/:id", async (req: Request, res: Response) => {
+    try {
+      const job = await storage.updateJob(req.params.id, req.body);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      res.json(job);
+    } catch (error) {
+      console.error("Update job error:", error);
+      res.status(500).json({ message: "Failed to update job" });
+    }
+  });
+  
+  // Delete job (admin only)
+  app.delete("/api/jobs/:id", async (req: Request, res: Response) => {
+    try {
+      await storage.deleteJob(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete job error:", error);
+      res.status(500).json({ message: "Failed to delete job" });
+    }
+  });
+  
+  // Application Routes
+  
+  // Get applications by tutor
+  app.get("/api/applications/tutor/:tutorId", async (req: Request, res: Response) => {
+    try {
+      const applications = await storage.getApplicationsByTutor(req.params.tutorId);
+      res.json(applications);
+    } catch (error) {
+      console.error("Get applications error:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+  
+  // Get applications by job
+  app.get("/api/applications/job/:jobId", async (req: Request, res: Response) => {
+    try {
+      const applications = await storage.getApplicationsByJob(req.params.jobId);
+      res.json(applications);
+    } catch (error) {
+      console.error("Get job applications error:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+  
+  // Create application
+  app.post("/api/applications", async (req: Request, res: Response) => {
+    try {
+      const data = insertApplicationSchema.parse(req.body);
+      const application = await storage.createApplication(data);
+      res.status(201).json(application);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Create application error:", error);
+      res.status(500).json({ message: "Failed to create application" });
+    }
+  });
+  
+  // Update application status
+  app.patch("/api/applications/:id/status", async (req: Request, res: Response) => {
+    try {
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+      
+      const application = await storage.updateApplicationStatus(req.params.id, status);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      res.json(application);
+    } catch (error) {
+      console.error("Update application status error:", error);
+      res.status(500).json({ message: "Failed to update application status" });
+    }
+  });
+  
+  // Admin Routes
+  
+  // Create admin account (for initial setup)
+  app.post("/api/admin/create", async (req: Request, res: Response) => {
+    try {
+      const data = insertAdminSchema.parse(req.body);
+      
+      // Check if admin email already exists
+      const existing = await storage.getAdminByEmail(data.email);
+      if (existing) {
+        return res.status(400).json({ message: "Admin email already exists" });
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(data.password, 10);
+      
+      // Create admin
+      const admin = await storage.createAdmin({
+        ...data,
+        password: hashedPassword,
+      });
+      
+      // Remove password from response
+      const { password: _, ...adminData } = admin;
+      res.status(201).json(adminData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Create admin error:", error);
+      res.status(500).json({ message: "Failed to create admin" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
