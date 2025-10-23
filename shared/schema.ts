@@ -60,6 +60,24 @@ export const admins = pgTable("admins", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Job Requests table (parent submissions)
+export const jobRequests = pgTable("job_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentName: text("parent_name").notNull(),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone").notNull(),
+  subject: text("subject").notNull(),
+  level: text("level").notNull(),
+  location: text("location").notNull(),
+  schedule: text("schedule"),
+  budget: text("budget"),
+  lessonsPerWeek: integer("lessons_per_week"),
+  genderPref: text("gender_pref"),
+  additionalNotes: text("additional_notes"),
+  status: text("status").notNull().default("Pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const tutorsRelations = relations(tutors, ({ many }) => ({
   applications: many(applications),
@@ -118,6 +136,19 @@ export const insertAdminSchema = createInsertSchema(admins, {
   createdAt: true,
 });
 
+export const insertJobRequestSchema = createInsertSchema(jobRequests, {
+  parentName: z.string().min(2, "Name is required"),
+  contactPhone: z.string().min(8, "Valid phone number is required"),
+  contactEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
+  subject: z.string().min(1, "Subject is required"),
+  level: z.string().min(1, "Level is required"),
+  location: z.string().min(1, "Location is required"),
+}).omit({
+  id: true,
+  createdAt: true,
+  status: true,  // Status is server-controlled, not user input
+});
+
 // Login schemas
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -136,6 +167,9 @@ export type Application = typeof applications.$inferSelect;
 
 export type InsertAdmin = z.infer<typeof insertAdminSchema>;
 export type Admin = typeof admins.$inferSelect;
+
+export type InsertJobRequest = z.infer<typeof insertJobRequestSchema>;
+export type JobRequest = typeof jobRequests.$inferSelect;
 
 export type LoginData = z.infer<typeof loginSchema>;
 

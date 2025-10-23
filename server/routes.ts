@@ -7,6 +7,7 @@ import {
   insertJobSchema, 
   insertApplicationSchema,
   insertAdminSchema,
+  insertJobRequestSchema,
   loginSchema,
   type LoginData 
 } from "@shared/schema";
@@ -305,6 +306,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Update application status error:", error);
       res.status(500).json({ message: "Failed to update application status" });
+    }
+  });
+  
+  // Job Request Routes (Parent Submissions)
+  
+  // Get all job requests (admin only)
+  app.get("/api/job-requests", async (_req: Request, res: Response) => {
+    try {
+      const requests = await storage.getAllJobRequests();
+      res.json(requests);
+    } catch (error) {
+      console.error("Get job requests error:", error);
+      res.status(500).json({ message: "Failed to fetch job requests" });
+    }
+  });
+  
+  // Get pending job requests (admin only)
+  app.get("/api/job-requests/pending", async (_req: Request, res: Response) => {
+    try {
+      const requests = await storage.getPendingJobRequests();
+      res.json(requests);
+    } catch (error) {
+      console.error("Get pending job requests error:", error);
+      res.status(500).json({ message: "Failed to fetch pending requests" });
+    }
+  });
+  
+  // Create job request (public - no auth required)
+  app.post("/api/job-requests", async (req: Request, res: Response) => {
+    try {
+      const data = insertJobRequestSchema.parse(req.body);
+      // Force status to Pending - this is server-controlled, not user input
+      const requestData = {
+        ...data,
+        status: "Pending" as const,
+      };
+      const request = await storage.createJobRequest(requestData);
+      res.status(201).json(request);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Create job request error:", error);
+      res.status(500).json({ message: "Failed to submit request" });
+    }
+  });
+  
+  // Update job request status (admin only)
+  app.patch("/api/job-requests/:id/status", async (req: Request, res: Response) => {
+    try {
+      const { status } = req.body;
+      if (!["Pending", "Approved", "Rejected"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const request = await storage.updateJobRequestStatus(req.params.id, status);
+      if (!request) {
+        return res.status(404).json({ message: "Job request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      console.error("Update job request status error:", error);
+      res.status(500).json({ message: "Failed to update status" });
+    }
+  });
+  
+  // Approve and convert job request to job posting (admin only)
+  app.post("/api/job-requests/:id/approve", async (req: Request, res: Response) => {
+    try {
+      const requestId = req.params.id;
+      const request = await storage.getJobRequest(requestId);
+      
+      if (!request) {
+        return res.status(404).json({ message: "Job request not found" });
+      }
+      
+      if (request.status !== "Pending") {
+        return res.status(400).json({ message: "Request already processed" });
+      }
+      
+      // Create job from request
+      const job = await storage.createJob({
+        subject: request.subject,
+        level: request.level,
+        rate: request.budget || "To be discussed",
+        location: request.location,
+        schedule: request.schedule,
+        lessonsPerWeek: request.lessonsPerWeek,
+        genderPref: request.genderPref,
+        status: "Open",
+      });
+      
+      // Update request status to Approved
+      await storage.updateJobRequestStatus(requestId, "Approved");
+      
+      res.status(201).json(job);
+    } catch (error) {
+      console.error("Approve job request error:", error);
+      res.status(500).json({ message: "Failed to approve request" });
+    }
+  });
+  
+  // Delete job request (admin only)
+  app.delete("/api/job-requests/:id", async (req: Request, res: Response) => {
+    try {
+      await storage.deleteJobRequest(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete job request error:", error);
+      res.status(500).json({ message: "Failed to delete request" });
     }
   });
   

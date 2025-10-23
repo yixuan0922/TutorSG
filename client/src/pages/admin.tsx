@@ -36,7 +36,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { Tutor, Job } from "@shared/schema";
+import type { Tutor, Job, JobRequest } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Admin() {
@@ -68,9 +68,14 @@ export default function Admin() {
     queryKey: ["/api/jobs"],
   });
 
+  const { data: jobRequests = [] } = useQuery<JobRequest[]>({
+    queryKey: ["/api/job-requests"],
+  });
+
   const activeTutors = tutors.filter(t => t.status === "Active").length;
   const openJobs = jobs.filter(j => j.status === "Open").length;
   const filledJobs = jobs.filter(j => j.status === "Filled").length;
+  const pendingRequests = jobRequests.filter(r => r.status === "Pending").length;
 
   const approveTutorMutation = useMutation({
     mutationFn: async (tutorId: string) => {
@@ -199,6 +204,65 @@ export default function Admin() {
     createJobMutation.mutate(newJob);
   };
 
+  const approveRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      const response = await fetch(`/api/job-requests/${requestId}/approve`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to approve request");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/job-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      toast({
+        title: "Request approved",
+        description: "The request has been approved and posted as a job.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Approval failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      const response = await fetch(`/api/job-requests/${requestId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Rejected" }),
+      });
+      if (!response.ok) throw new Error("Failed to reject request");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/job-requests"] });
+      toast({
+        title: "Request rejected",
+        description: "The request has been rejected.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Rejection failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleApproveRequest = (requestId: string) => {
+    approveRequestMutation.mutate(requestId);
+  };
+
+  const handleRejectRequest = (requestId: string) => {
+    rejectRequestMutation.mutate(requestId);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -272,9 +336,12 @@ export default function Admin() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="tutors" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
             <TabsTrigger value="tutors" data-testid="tab-tutors">Tutors</TabsTrigger>
             <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
+            <TabsTrigger value="requests" data-testid="tab-requests">
+              Requests {pendingRequests > 0 && `(${pendingRequests})`}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="tutors" className="space-y-6">
@@ -535,6 +602,95 @@ export default function Admin() {
                           </TableCell>
                         </TableRow>
                       ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="requests" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Parent Tuition Requests</CardTitle>
+                <CardDescription>
+                  Review and approve tuition requests submitted by parents
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Parent Name</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Level</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Budget</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jobRequests.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                            No tuition requests yet
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        jobRequests.map((request) => (
+                          <TableRow key={request.id} data-testid={`row-request-${request.id}`}>
+                            <TableCell className="font-medium">{request.parentName}</TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div>{request.contactPhone}</div>
+                                {request.contactEmail && (
+                                  <div className="text-muted-foreground">{request.contactEmail}</div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{request.subject}</TableCell>
+                            <TableCell>{request.level}</TableCell>
+                            <TableCell>{request.location}</TableCell>
+                            <TableCell>{request.budget || "-"}</TableCell>
+                            <TableCell>
+                              <StatusBadge status={request.status} variant="sm" />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {request.status === "Pending" ? (
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    onClick={() => handleApproveRequest(request.id)}
+                                    disabled={approveRequestMutation.isPending}
+                                    data-testid={`button-approve-request-${request.id}`}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    {approveRequestMutation.isPending ? "Approving..." : "Approve & Post"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleRejectRequest(request.id)}
+                                    disabled={rejectRequestMutation.isPending}
+                                    data-testid={`button-reject-request-${request.id}`}
+                                  >
+                                    <UserX className="h-4 w-4 mr-1" />
+                                    {rejectRequestMutation.isPending ? "Rejecting..." : "Reject"}
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  {request.status === "Approved" ? "Approved" : "Rejected"}
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>

@@ -40,8 +40,13 @@ export default function Landing() {
             Start your tutoring journey today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/jobs" data-testid="link-browse-jobs">
+            <Link href="/request-tutor" data-testid="link-request-tutor">
               <Button size="lg" variant="default" className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[200px]">
+                Request a Tutor
+              </Button>
+            </Link>
+            <Link href="/jobs" data-testid="link-browse-jobs">
+              <Button size="lg" variant="outline" className="bg-background/20 backdrop-blur border-white text-white hover:bg-background/30 min-w-[200px]">
                 Browse Tuition Jobs
               </Button>
             </Link>

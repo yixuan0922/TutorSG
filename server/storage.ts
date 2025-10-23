@@ -4,6 +4,7 @@ import {
   jobs, 
   applications, 
   admins,
+  jobRequests,
   type Tutor, 
   type InsertTutor,
   type Job,
@@ -12,6 +13,8 @@ import {
   type InsertApplication,
   type Admin,
   type InsertAdmin,
+  type JobRequest,
+  type InsertJobRequest,
   type ApplicationWithRelations
 } from "@shared/schema";
 import { db } from "./db";
@@ -44,6 +47,14 @@ export interface IStorage {
   getAdmin(id: string): Promise<Admin | undefined>;
   getAdminByEmail(email: string): Promise<Admin | undefined>;
   createAdmin(admin: InsertAdmin): Promise<Admin>;
+  
+  // Job Request operations
+  getJobRequest(id: string): Promise<JobRequest | undefined>;
+  getAllJobRequests(): Promise<JobRequest[]>;
+  getPendingJobRequests(): Promise<JobRequest[]>;
+  createJobRequest(request: InsertJobRequest): Promise<JobRequest>;
+  updateJobRequestStatus(id: string, status: string): Promise<JobRequest | undefined>;
+  deleteJobRequest(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -170,6 +181,41 @@ export class DatabaseStorage implements IStorage {
       .values(insertAdmin)
       .returning();
     return admin;
+  }
+
+  // Job Request operations
+  async getJobRequest(id: string): Promise<JobRequest | undefined> {
+    const [request] = await db.select().from(jobRequests).where(eq(jobRequests.id, id));
+    return request || undefined;
+  }
+
+  async getAllJobRequests(): Promise<JobRequest[]> {
+    return await db.select().from(jobRequests).orderBy(desc(jobRequests.createdAt));
+  }
+
+  async getPendingJobRequests(): Promise<JobRequest[]> {
+    return await db.select().from(jobRequests).where(eq(jobRequests.status, "Pending")).orderBy(desc(jobRequests.createdAt));
+  }
+
+  async createJobRequest(insertJobRequest: InsertJobRequest): Promise<JobRequest> {
+    const [request] = await db
+      .insert(jobRequests)
+      .values(insertJobRequest)
+      .returning();
+    return request;
+  }
+
+  async updateJobRequestStatus(id: string, status: string): Promise<JobRequest | undefined> {
+    const [request] = await db
+      .update(jobRequests)
+      .set({ status })
+      .where(eq(jobRequests.id, id))
+      .returning();
+    return request || undefined;
+  }
+
+  async deleteJobRequest(id: string): Promise<void> {
+    await db.delete(jobRequests).where(eq(jobRequests.id, id));
   }
 }
 

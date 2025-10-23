@@ -19,6 +19,11 @@ export function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-6">
+            <Link href="/request-tutor" data-testid="link-request-tutor-nav">
+              <Button variant={isActive("/request-tutor") ? "default" : "ghost"}>
+                Request Tutor
+              </Button>
+            </Link>
             <Link href="/jobs" data-testid="link-jobs">
               <Button variant={isActive("/jobs") ? "default" : "ghost"}>
                 Browse Jobs
@@ -54,6 +59,11 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border bg-background">
           <div className="px-4 py-4 space-y-2">
+            <Link href="/request-tutor" data-testid="link-request-tutor-mobile">
+              <Button variant={isActive("/request-tutor") ? "default" : "ghost"} className="w-full justify-start">
+                Request Tutor
+              </Button>
+            </Link>
             <Link href="/jobs" data-testid="link-jobs-mobile">
               <Button variant={isActive("/jobs") ? "default" : "ghost"} className="w-full justify-start">
                 Browse Jobs

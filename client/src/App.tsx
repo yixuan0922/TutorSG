@@ -10,6 +10,7 @@ import Jobs from "@/pages/jobs";
 import Dashboard from "@/pages/dashboard";
 import Admin from "@/pages/admin";
 import TuitionRates from "@/pages/tuition-rates";
+import RequestTutor from "@/pages/request-tutor";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/admin" component={Admin} />
       <Route path="/tuition-rates" component={TuitionRates} />
+      <Route path="/request-tutor" component={RequestTutor} />
       <Route component={NotFound} />
     </Switch>
   );
