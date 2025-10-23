@@ -46,6 +46,7 @@ export interface IStorage {
   // Admin operations
   getAdmin(id: string): Promise<Admin | undefined>;
   getAdminByEmail(email: string): Promise<Admin | undefined>;
+  getAllAdmins(): Promise<Admin[]>;
   createAdmin(admin: InsertAdmin): Promise<Admin>;
   
   // Job Request operations
@@ -173,6 +174,10 @@ export class DatabaseStorage implements IStorage {
   async getAdminByEmail(email: string): Promise<Admin | undefined> {
     const [admin] = await db.select().from(admins).where(eq(admins.email, email));
     return admin || undefined;
+  }
+
+  async getAllAdmins(): Promise<Admin[]> {
+    return await db.select().from(admins);
   }
 
   async createAdmin(insertAdmin: InsertAdmin): Promise<Admin> {

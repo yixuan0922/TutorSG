@@ -444,9 +444,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Admin Routes
   
-  // Create admin account (for initial setup)
+  // Create admin account (protected - requires existing admin OR no admins exist for initial setup)
   app.post("/api/admin/create", async (req: Request, res: Response) => {
     try {
+      // Check if any admins exist
+      const allAdmins = await storage.getAllAdmins();
+      const hasAdmins = allAdmins && allAdmins.length > 0;
+      
+      // If admins exist, require admin authentication
+      if (hasAdmins && (!req.session.userId || req.session.userType !== "admin")) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+      
       const data = insertAdminSchema.parse(req.body);
       
       // Check if admin email already exists
