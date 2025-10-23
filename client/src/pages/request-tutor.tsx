@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Phone, Mail, MapPin, BookOpen, GraduationCap, Headset } from "lucide-react";
+import { Navbar } from "@/components/navbar";
 
 const formSchema = insertJobRequestSchema.extend({
   contactEmail: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -167,8 +168,10 @@ export default function RequestTutor() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <CheckCircle2 className="w-6 h-6 text-primary" />
@@ -197,12 +200,14 @@ export default function RequestTutor() {
             </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       <div className="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
