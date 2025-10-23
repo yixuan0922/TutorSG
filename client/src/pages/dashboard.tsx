@@ -116,7 +116,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Applications</p>
                   <p className="text-3xl font-bold text-foreground" data-testid="text-stat-applications">
-                    {mockApplications.length}
+                    {applications.length}
                   </p>
                 </div>
                 <Briefcase className="h-8 w-8 text-primary" />
