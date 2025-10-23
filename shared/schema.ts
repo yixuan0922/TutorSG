@@ -191,6 +191,23 @@ export const insertSalesContactSchema = createInsertSchema(salesContacts, {
   status: true,  // Status is server-controlled
 });
 
+// Update tutor schema (editable fields only)
+export const updateTutorSchema = createInsertSchema(tutors, {
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  mobile: z.string().min(1, "Mobile number is required"),
+  subjects: z.array(z.string()).default([]),
+  levels: z.array(z.string()).default([]),
+  locations: z.array(z.string()).default([]),
+  languages: z.array(z.string()).default([]),
+}).omit({
+  id: true,
+  email: true,  // Requires separate verification flow
+  password: true,  // Requires separate security flow
+  status: true,  // Admin-controlled
+  createdAt: true,
+  publicProfile: true,  // Can add later if needed
+}).partial();  // All fields optional for updates
+
 // Login schemas
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -199,6 +216,7 @@ export const loginSchema = z.object({
 
 // Types
 export type InsertTutor = z.infer<typeof insertTutorSchema>;
+export type UpdateTutor = z.infer<typeof updateTutorSchema>;
 export type Tutor = typeof tutors.$inferSelect;
 
 export type InsertJob = z.infer<typeof insertJobSchema>;

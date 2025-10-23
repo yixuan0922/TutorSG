@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import { 
-  insertTutorSchema, 
+  insertTutorSchema,
+  updateTutorSchema,
   insertJobSchema, 
   insertApplicationSchema,
   insertAdminSchema,
@@ -175,10 +176,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Update tutor
-  app.patch("/api/tutors/:id", async (req: Request, res: Response) => {
+  // Update tutor profile
+  app.patch("/api/tutors/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      const tutor = await storage.updateTutor(req.params.id, req.body);
+      // Verify tutor can only update their own profile
+      if (req.session.userType !== "tutor" || req.session.userId !== req.params.id) {
+        return res.status(403).json({ message: "Forbidden - Can only update your own profile" });
+      }
+      
+      // Validate update data
+      const data = updateTutorSchema.parse(req.body);
+      
+      const tutor = await storage.updateTutor(req.params.id, data);
       if (!tutor) {
         return res.status(404).json({ message: "Tutor not found" });
       }
@@ -187,6 +196,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password: _, ...tutorData } = tutor;
       res.json(tutorData);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
       console.error("Update tutor error:", error);
       res.status(500).json({ message: "Failed to update tutor" });
     }
