@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -100,15 +101,23 @@ app.use((req, res, next) => {
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
+  // Other ports are firewalled. Default to 3000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  let port = parseInt(process.env.PORT || '3000', 10);
+
+  const tryListen = (currentPort: number): void => {
+    server.listen(currentPort, "0.0.0.0", () => {
+      log(`serving on port ${currentPort}`);
+    }).on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        log(`Port ${currentPort} is in use, trying ${currentPort + 1}...`);
+        tryListen(currentPort + 1);
+      } else {
+        throw err;
+      }
+    });
+  };
+
+  tryListen(port);
 })();
