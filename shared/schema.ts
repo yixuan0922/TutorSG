@@ -44,6 +44,12 @@ export const tutors = pgTable("tutors", {
   certifications: text("certifications"),
   status: text("status").notNull().default("Pending"),
   publicProfile: boolean("public_profile").notNull().default(false),
+
+  // Telegram bot integration
+  telegramId: text("telegram_id").unique(),
+  telegramUsername: text("telegram_username"),
+  notificationsEnabled: boolean("notifications_enabled").notNull().default(false),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -58,6 +64,7 @@ export const jobs = pgTable("jobs", {
   schedule: text("schedule"),
   lessonsPerWeek: integer("lessons_per_week"),
   mapUrl: text("map_url"),
+  specialRequests: text("special_requests"), // Parent's special requests/requirements
   status: text("status").notNull().default("Open"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -67,6 +74,7 @@ export const applications = pgTable("applications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tutorId: varchar("tutor_id").notNull().references(() => tutors.id),
   jobId: varchar("job_id").notNull().references(() => jobs.id),
+  message: text("message"), // Tutor's personalized message to parents
   status: text("status").notNull().default("Applied"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

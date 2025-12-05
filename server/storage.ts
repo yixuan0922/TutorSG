@@ -1,12 +1,12 @@
 // Storage interface and database implementation using javascript_database blueprint
-import { 
-  tutors, 
-  jobs, 
-  applications, 
+import {
+  tutors,
+  jobs,
+  applications,
   admins,
   jobRequests,
   salesContacts,
-  type Tutor, 
+  type Tutor,
   type InsertTutor,
   type Job,
   type InsertJob,
@@ -22,6 +22,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 export interface IStorage {
   // Tutor operations
@@ -81,7 +82,10 @@ export class DatabaseStorage implements IStorage {
   async createTutor(insertTutor: InsertTutor): Promise<Tutor> {
     const [tutor] = await db
       .insert(tutors)
-      .values(insertTutor)
+      .values({
+        ...insertTutor,
+        id: nanoid(),
+      })
       .returning();
     return tutor;
   }
@@ -116,7 +120,10 @@ export class DatabaseStorage implements IStorage {
   async createJob(insertJob: InsertJob): Promise<Job> {
     const [job] = await db
       .insert(jobs)
-      .values(insertJob)
+      .values({
+        ...insertJob,
+        id: nanoid(),
+      })
       .returning();
     return job;
   }
@@ -159,7 +166,10 @@ export class DatabaseStorage implements IStorage {
   async createApplication(insertApplication: InsertApplication): Promise<Application> {
     const [application] = await db
       .insert(applications)
-      .values(insertApplication)
+      .values({
+        ...insertApplication,
+        id: nanoid(),
+      })
       .returning();
     return application;
   }
@@ -191,7 +201,10 @@ export class DatabaseStorage implements IStorage {
   async createAdmin(insertAdmin: InsertAdmin): Promise<Admin> {
     const [admin] = await db
       .insert(admins)
-      .values(insertAdmin)
+      .values({
+        ...insertAdmin,
+        id: nanoid(),
+      })
       .returning();
     return admin;
   }
@@ -216,6 +229,7 @@ export class DatabaseStorage implements IStorage {
       .insert(jobRequests)
       .values({
         ...insertJobRequest,
+        id: nanoid(),
         status: "Pending",
       })
       .returning();
@@ -242,6 +256,7 @@ export class DatabaseStorage implements IStorage {
       .insert(salesContacts)
       .values({
         ...insertSalesContact,
+        id: nanoid(),
         status: "New",
       })
       .returning();
